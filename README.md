@@ -1,6 +1,12 @@
 # Ustaad
 
-A self-hosted, LLM-powered personal wiki engine. Drop in raw documents, chat transcripts, or any text source — Ustaad ingests them, synthesizes the knowledge into a structured Obsidian-compatible wiki, and lets you query it in natural language.
+> A self-hosted, LLM-powered personal wiki engine.
+
+![Java](https://img.shields.io/badge/Java-21-orange?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3-brightgreen?logo=springboot)
+![License](https://img.shields.io/badge/license-see%20LICENSE-blue)
+
+Drop in raw documents, chat transcripts, or any text source — Ustaad ingests them, synthesizes the knowledge into a structured Obsidian-compatible wiki, and lets you query it in natural language.
 
 ---
 
@@ -24,6 +30,23 @@ Ustaad follows a strict **living graph** model defined in `wiki/schema-work.md`:
 | Templating | Thymeleaf |
 | Wiki format | Obsidian-flavoured Markdown |
 | Document parsing | Apache Tika, Spring AI PDF reader |
+
+---
+
+## LLM Provider Support
+
+| Provider | Status | `WIKI_LLM_PROVIDER` value | Notes |
+|---|---|---|---|
+| **Google Gemini** | ✅ Integrated | `gemini` | Default provider |
+| **Ollama (local)** | ✅ Integrated | `ollama` | Any model served by Ollama |
+| **OpenAI** | 🔲 Planned | — | GPT-4o, o3, etc. |
+| **Anthropic Claude** | 🔲 Planned | — | Claude Sonnet / Opus |
+| **xAI Grok** | 🔲 Planned | — | Grok-2 and later |
+| **Mistral** | 🔲 Planned | — | Mistral Large / Codestral |
+| **Cohere** | 🔲 Planned | — | Command R+ |
+| **Azure OpenAI** | 🔲 Planned | — | Azure-hosted OpenAI models |
+
+> Contributions adding new providers via Spring AI are welcome — each provider only requires a new `@ConditionalOnProperty` bean in `WikiConfig.java`.
 
 ---
 

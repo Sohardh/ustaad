@@ -47,6 +47,16 @@ public class WikiService {
     return results.toString();
   }
 
+  public boolean isLlmHealthy() {
+    try {
+      String response = chatClient.prompt("Reply with OK").call().content();
+      return response != null && !response.isBlank();
+    } catch (Exception e) {
+      log.warn("LLM health check failed", e);
+      return false;
+    }
+  }
+
   public Flux<String> queryStream(String question) {
     log.info("Querying wiki with question: {}", question);
     String wikiContext;

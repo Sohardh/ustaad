@@ -1,5 +1,7 @@
 package com.sohardh.ustaadbackend.controller;
 
+import com.sohardh.ustaadbackend.config.WikiProperties;
+import com.sohardh.ustaadbackend.service.WikiLintService;
 import com.sohardh.ustaadbackend.service.WikiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -19,14 +21,23 @@ public class WikiController {
   private static final Logger log = LoggerFactory.getLogger(WikiController.class);
 
   private final WikiService wikiService;
+  private final WikiLintService wikiLintService;
+  private final WikiProperties wikiProperties;
 
-  public WikiController(WikiService wikiService) {
+  public WikiController(WikiService wikiService, WikiLintService wikiLintService, WikiProperties wikiProperties) {
     this.wikiService = wikiService;
+    this.wikiLintService = wikiLintService;
+    this.wikiProperties = wikiProperties;
   }
 
   @GetMapping("/")
   public String home(Model model) {
-    model.addAttribute("message", "Work LLM Wiki Agent ready (Ollama + llama3.1:70b)");
+    String provider = wikiProperties.llmProvider() != null ? wikiProperties.llmProvider() : "ollama";
+    boolean healthy = wikiService.isLlmHealthy();
+    String status = healthy ? "online" : "offline";
+    model.addAttribute("message", "LLM (" + provider + ") is " + status);
+    model.addAttribute("llmProvider", provider);
+    model.addAttribute("llmStatus", status);
     return "index";
   }
 
@@ -37,6 +48,13 @@ public class WikiController {
     log.info("Bulk ingestion completed.");
     redirectAttributes.addFlashAttribute("message", result);
     return "redirect:/";
+  }
+
+  @PostMapping("/lint")
+  @ResponseBody
+  public String lint() throws IOException {
+    log.info("Received manual lint request");
+    return wikiLintService.runLint();
   }
 
   @PostMapping("/query")

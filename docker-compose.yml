@@ -1,0 +1,30 @@
+services:
+  ustaad:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      # Wiki paths inside the container — match the volume mounts below
+      WIKI_BASE_PATH: /wiki
+      WIKI_SOURCES_PATH: /sources
+      # Watcher state lives in a dedicated persistent volume
+      WIKI_WATCHERS_PATH: /data/watchers.json
+      WIKI_WATCHERS_STATE_PATH: /data/watchers-state.json
+      # LLM provider: "gemini" or "ollama"
+      WIKI_LLM_PROVIDER: gemini
+      # Gemini API key — required when WIKI_LLM_PROVIDER=gemini
+      SPRING_AI_GOOGLE_GENAI_API_KEY: your-gemini-api-key-here
+      # Ollama settings — required when WIKI_LLM_PROVIDER=ollama
+      SPRING_AI_OLLAMA_BASE_URL: http://ollama:11434
+      SPRING_AI_OLLAMA_CHAT_MODEL: llama3.1:8b
+    volumes:
+      # Set these to the absolute paths of your wiki and sources directories
+      - /path/to/your/wiki:/wiki
+      - /path/to/your/sources:/sources
+      - ustaad-data:/data
+    restart: unless-stopped
+
+volumes:
+  ustaad-data: # persists watchers.json + watchers-state.json

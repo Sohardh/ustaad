@@ -1,30 +1,1213 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org">
+<html xmlns:th="http://www.thymeleaf.org" lang="en">
 <head>
-    <title>Work LLM Wiki</title>
-    <style>body{font-family:Arial;margin:40px}textarea{width:100%;height:200px}</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ustaad — Work Wiki</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --bg-base:       #0f0f10;
+            --bg-surface:    #17171a;
+            --bg-elevated:   #1e1e24;
+            --bg-hover:      #26262e;
+            --border:        #2a2a35;
+            --border-focus:  #7c5cfc;
+            --text-primary:  #e0dff5;
+            --text-muted:    #6e6d8a;
+            --text-faint:    #3d3d52;
+            --accent:        #7c5cfc;
+            --accent-soft:   rgba(124, 92, 252, 0.15);
+            --accent-glow:   rgba(124, 92, 252, 0.35);
+            --green:         #4ade80;
+            --green-soft:    rgba(74, 222, 128, 0.12);
+            --radius-sm:     6px;
+            --radius-md:     10px;
+            --radius-lg:     14px;
+            --shadow:        0 4px 24px rgba(0,0,0,0.5);
+            --shadow-accent: 0 0 32px rgba(124,92,252,0.2);
+        }
+
+        html, body {
+            height: 100%;
+            background: var(--bg-base);
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Layout ── */
+        .shell {
+            display: grid;
+            grid-template-columns: 200px 1fr;
+            height: 100vh;
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* ── Sidebar ── */
+        .sidebar {
+            background: var(--bg-surface);
+            border-right: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            padding: 28px 14px;
+            gap: 4px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 0 6px 20px;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 12px;
+        }
+
+        .logo-icon {
+            width: 28px; height: 28px;
+            background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px;
+            box-shadow: 0 0 12px var(--accent-glow);
+            flex-shrink: 0;
+        }
+
+        .logo-text {
+            font-size: 15px;
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            color: var(--text-primary);
+        }
+
+        .logo-sub {
+            font-size: 10px;
+            color: var(--text-muted);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .sidebar-footer {
+            margin-top: auto;
+            padding-top: 16px;
+            border-top: 1px solid var(--border);
+        }
+
+        .status-pill {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 10px;
+            background: var(--green-soft);
+            border: 1px solid rgba(74,222,128,0.2);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            color: var(--green);
+        }
+
+        .status-dot {
+            width: 7px; height: 7px;
+            background: var(--green);
+            border-radius: 50%;
+            box-shadow: 0 0 6px var(--green);
+            animation: pulse 2s ease-in-out infinite;
+            flex-shrink: 0;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.4; }
+        }
+
+        /* ── Main ── */
+        .main {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        /* ── Tabs ── */
+        .tabs-bar {
+            display: flex;
+            align-items: center;
+            gap: 2px;
+            padding: 16px 32px 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-surface);
+            flex-shrink: 0;
+        }
+
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: none;
+            background: none;
+            color: var(--text-muted);
+            font-size: 13px;
+            font-weight: 500;
+            font-family: 'Inter', system-ui, sans-serif;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -1px;
+            transition: color 0.15s;
+            letter-spacing: 0.01em;
+        }
+
+        .tab-btn:hover { color: var(--text-primary); }
+
+        .tab-btn.active {
+            color: #a78bfa;
+            border-bottom-color: var(--accent);
+        }
+
+        .tab-icon { font-size: 15px; }
+
+        /* ── Tab panels ── */
+        .tab-panel { display: none; flex: 1; overflow: hidden; }
+        .tab-panel.active { display: flex; flex-direction: column; }
+
+        /* ── Upload panel ── */
+        .upload-panel {
+            overflow-y: auto;
+            padding: 36px 48px;
+            gap: 0;
+        }
+
+        .panel-header {
+            margin-bottom: 28px;
+        }
+
+        .panel-title {
+            font-size: 20px;
+            font-weight: 600;
+            letter-spacing: -0.03em;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .panel-subtitle {
+            font-size: 13px;
+            color: var(--text-muted);
+        }
+
+        /* ── Cards ── */
+        .card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 28px 32px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .card:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: var(--shadow-accent);
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 22px;
+        }
+
+        .card-icon {
+            width: 34px; height: 34px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(124,92,252,0.25);
+            border-radius: var(--radius-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+        }
+
+        .card-title {
+            font-size: 15px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.01em;
+        }
+
+        .card-desc {
+            font-size: 12px;
+            color: var(--text-muted);
+            margin-top: 1px;
+        }
+
+        /* ── Drop zone ── */
+        .drop-zone {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 36px 24px;
+            background: var(--bg-elevated);
+            border: 1.5px dashed var(--border);
+            border-radius: var(--radius-md);
+            cursor: default;
+            transition: border-color 0.2s, background 0.2s;
+            user-select: none;
+        }
+
+        .drop-zone.drag-over {
+            border-color: var(--accent);
+            background: var(--accent-soft);
+            box-shadow: 0 0 0 3px rgba(124,92,252,0.1);
+        }
+
+        .drop-zone-icon { font-size: 30px; pointer-events: none; }
+        .drop-zone-text { font-size: 13px; color: var(--text-muted); pointer-events: none; }
+        .drop-zone-hint { font-size: 11px; color: var(--text-faint); pointer-events: none; }
+
+        /* ── Add buttons row ── */
+        .add-row {
+            display: flex;
+            gap: 10px;
+            margin-top: 10px;
+        }
+
+        .add-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 8px 14px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            font-size: 12px;
+            font-weight: 500;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s, background 0.15s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .add-btn:hover { border-color: var(--accent); color: #a78bfa; background: var(--accent-soft); }
+        .add-btn input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%; }
+
+        /* ── File queue ── */
+        .queue-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 18px;
+            margin-bottom: 8px;
+        }
+
+        .queue-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .queue-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 18px;
+            height: 18px;
+            padding: 0 5px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(124,92,252,0.3);
+            border-radius: 99px;
+            font-size: 10px;
+            color: #a78bfa;
+            font-weight: 600;
+        }
+
+        .queue-clear {
+            font-size: 11px;
+            color: var(--text-faint);
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 2px 6px;
+            border-radius: var(--radius-sm);
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .queue-clear:hover { color: #f87171; background: rgba(248,113,113,0.1); }
+
+        .queue-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            max-height: 160px;
+            overflow-y: auto;
+            padding: 2px 0;
+        }
+
+        .chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px 4px 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            font-size: 11px;
+            color: var(--text-muted);
+            max-width: 220px;
+            animation: chipIn 0.15s ease;
+        }
+
+        @keyframes chipIn {
+            from { opacity: 0; transform: scale(0.88); }
+            to   { opacity: 1; transform: scale(1); }
+        }
+
+        .chip-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .chip-remove {
+            flex-shrink: 0;
+            width: 14px; height: 14px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 50%;
+            background: none;
+            border: none;
+            cursor: pointer;
+            color: var(--text-faint);
+            font-size: 12px;
+            line-height: 1;
+            padding: 0;
+            transition: color 0.15s, background 0.15s;
+        }
+
+        .chip-remove:hover { color: #f87171; background: rgba(248,113,113,0.15); }
+
+        /* ── Buttons ── */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            padding: 9px 18px;
+            border-radius: var(--radius-sm);
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            border: none;
+            transition: all 0.15s;
+            letter-spacing: 0.01em;
+            font-family: 'Inter', system-ui, sans-serif;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: #fff;
+            box-shadow: 0 0 0 0 var(--accent-glow);
+        }
+
+        .btn-primary:hover {
+            background: #8f6dff;
+            box-shadow: 0 0 14px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .btn-primary:active { transform: translateY(0); }
+        .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .btn-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+        /* ── Upload loading overlay ── */
+        .upload-loading {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15,15,16,0.8);
+            backdrop-filter: blur(4px);
+            z-index: 100;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 20px;
+        }
+
+        .upload-loading.active { display: flex; }
+
+        .spinner {
+            width: 44px; height: 44px;
+            border: 3px solid var(--border);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .upload-loading-text {
+            font-size: 14px;
+            color: var(--text-muted);
+            letter-spacing: 0.02em;
+        }
+
+        .upload-loading-sub {
+            font-size: 12px;
+            color: var(--text-faint);
+        }
+
+        /* ── Ingestion result ── */
+        .log-card {
+            margin-top: 20px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+            animation: fadeUp 0.3s ease;
+        }
+
+        .log-header {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 20px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .log-title {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--green);
+        }
+
+        .log-body {
+            padding: 18px 20px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            line-height: 1.7;
+            color: #9acd9a;
+            white-space: pre-wrap;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+
+        /* ── Chat panel ── */
+        .chat-panel {
+            flex-direction: column;
+            background: var(--bg-base);
+        }
+
+        /* Chat messages area */
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 32px 0;
+            display: flex;
+            flex-direction: column;
+            gap: 0;
+        }
+
+        .chat-empty {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 16px;
+            padding: 60px 32px;
+            text-align: center;
+        }
+
+        .chat-empty-icon {
+            width: 56px; height: 56px;
+            background: var(--accent-soft);
+            border: 1px solid rgba(124,92,252,0.25);
+            border-radius: 16px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 26px;
+        }
+
+        .chat-empty-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+        }
+
+        .chat-empty-sub {
+            font-size: 13px;
+            color: var(--text-muted);
+            max-width: 320px;
+            line-height: 1.6;
+        }
+
+        .chat-suggestions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 8px;
+        }
+
+        .suggestion-chip {
+            padding: 8px 16px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 99px;
+            font-size: 12px;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: border-color 0.15s, color 0.15s, background 0.15s;
+        }
+
+        .suggestion-chip:hover {
+            border-color: var(--accent);
+            color: #a78bfa;
+            background: var(--accent-soft);
+        }
+
+        /* Message rows */
+        .msg-row {
+            display: flex;
+            padding: 6px 32px;
+            animation: fadeUp 0.2s ease;
+        }
+
+        .msg-row.user { justify-content: flex-end; }
+        .msg-row.assistant { justify-content: flex-start; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .msg-bubble {
+            max-width: 72%;
+            padding: 12px 16px;
+            border-radius: 16px;
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .msg-row.user .msg-bubble {
+            background: var(--accent);
+            color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+
+        .msg-row.assistant .msg-bubble {
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            color: var(--text-primary);
+            border-bottom-left-radius: 4px;
+        }
+
+        /* Markdown rendering inside assistant bubbles */
+        .msg-bubble.md p { margin: 0 0 10px; }
+        .msg-bubble.md p:last-child { margin-bottom: 0; }
+        .msg-bubble.md h1,.msg-bubble.md h2,.msg-bubble.md h3,
+        .msg-bubble.md h4,.msg-bubble.md h5,.msg-bubble.md h6 {
+            font-weight: 600; margin: 14px 0 6px; line-height: 1.3;
+        }
+        .msg-bubble.md h1 { font-size: 1.2em; }
+        .msg-bubble.md h2 { font-size: 1.1em; }
+        .msg-bubble.md h3,.msg-bubble.md h4,.msg-bubble.md h5,.msg-bubble.md h6 { font-size: 1em; }
+        .msg-bubble.md ul,.msg-bubble.md ol { padding-left: 20px; margin: 6px 0 10px; }
+        .msg-bubble.md li { margin-bottom: 4px; }
+        .msg-bubble.md code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 1px 5px;
+        }
+        .msg-bubble.md pre {
+            background: var(--bg-base);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 14px;
+            overflow-x: auto;
+            margin: 8px 0;
+        }
+        .msg-bubble.md pre code {
+            background: none;
+            border: none;
+            padding: 0;
+            font-size: 12px;
+            line-height: 1.6;
+        }
+        .msg-bubble.md blockquote {
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            margin: 8px 0;
+            color: var(--text-muted);
+        }
+        .msg-bubble.md a { color: #a78bfa; text-decoration: underline; }
+        .msg-bubble.md hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+        .msg-bubble.md strong { font-weight: 600; }
+        .msg-bubble.md em { font-style: italic; }
+        .msg-bubble.md table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+        .msg-bubble.md th,.msg-bubble.md td { border: 1px solid var(--border); padding: 6px 10px; }
+        .msg-bubble.md th { background: var(--bg-base); font-weight: 600; }
+
+        .msg-avatar {
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 13px;
+            flex-shrink: 0;
+            align-self: flex-end;
+        }
+
+        .msg-row.user .msg-avatar {
+            background: var(--accent-soft);
+            border: 1px solid rgba(124,92,252,0.3);
+            margin-left: 10px;
+            order: 2;
+        }
+
+        .msg-row.assistant .msg-avatar {
+            background: linear-gradient(135deg, #7c5cfc, #a78bfa);
+            margin-right: 10px;
+        }
+
+        /* Typing indicator */
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            padding: 14px 16px;
+        }
+
+        .typing-dot {
+            width: 7px; height: 7px;
+            background: var(--text-faint);
+            border-radius: 50%;
+            animation: typingBounce 1.2s ease-in-out infinite;
+        }
+
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typingBounce {
+            0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+            30% { transform: translateY(-6px); opacity: 1; }
+        }
+
+        /* ── Chat input bar ── */
+        .chat-input-wrap {
+            padding: 16px 32px 24px;
+            flex-shrink: 0;
+            background: var(--bg-base);
+        }
+
+        .chat-input-box {
+            display: flex;
+            align-items: flex-end;
+            gap: 10px;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 12px 14px 12px 18px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .chat-input-box:focus-within {
+            border-color: var(--border-focus);
+            box-shadow: var(--shadow-accent);
+        }
+
+        .chat-input-box textarea {
+            flex: 1;
+            background: none;
+            border: none;
+            outline: none;
+            color: var(--text-primary);
+            font-family: 'Inter', system-ui, sans-serif;
+            font-size: 14px;
+            line-height: 1.6;
+            resize: none;
+            height: 24px;
+            max-height: 200px;
+            padding: 0;
+            transition: none;
+        }
+
+        .chat-input-box textarea::placeholder { color: var(--text-faint); }
+
+        .chat-send-btn {
+            width: 36px; height: 36px;
+            border-radius: 10px;
+            background: var(--accent);
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff;
+            font-size: 16px;
+            flex-shrink: 0;
+            transition: background 0.15s, transform 0.1s, box-shadow 0.15s, opacity 0.15s;
+        }
+
+        .chat-send-btn:hover {
+            background: #8f6dff;
+            box-shadow: 0 0 12px var(--accent-glow);
+            transform: translateY(-1px);
+        }
+
+        .chat-send-btn:active { transform: translateY(0); }
+        .chat-send-btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; box-shadow: none; }
+
+        .chat-input-hint {
+            font-size: 11px;
+            color: var(--text-faint);
+            text-align: center;
+            margin-top: 10px;
+        }
+
+        /* ── Scrollbar ── */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+
+        /* ── Responsive ── */
+        @media (max-width: 768px) {
+            .shell { grid-template-columns: 1fr; }
+            .sidebar { display: none; }
+            .upload-panel { padding: 24px 20px; }
+            .chat-input-wrap { padding: 12px 16px 20px; }
+            .msg-row { padding: 6px 16px; }
+            .msg-bubble { max-width: 90%; }
+        }
+    </style>
 </head>
 <body>
-    <h1>Work LLM Wiki Agent</h1>
-    <p><strong>Status:</strong> Connected to Olldama</p>
-    
-    <h2>1. Ingest New Files / Folders</h2>
-    <form method="post" enctype="multipart/form-data" action="/ingest">
-        <label for="files">Select Files:</label>
-        <input type="file" name="files" id="files" multiple><br><br>
-        <label for="folder">Select Folder:</label>
-        <input type="file" name="files" id="folder" webkitdirectory directory multiple><br><br>
-        <button type="submit">Ingest into Wiki</button>
-    </form>
+<div class="shell">
 
-    <h2>2. Ask the Wiki</h2>
-    <form method="post" action="/query">
-        <textarea name="question" placeholder="Ask anything about your work knowledge..."></textarea><br>
-        <button type="submit">Ask</button>
-    </form>
+    <!-- Sidebar -->
+    <nav class="sidebar">
+        <div class="logo">
+            <div class="logo-icon">⚡</div>
+            <div>
+                <div class="logo-text">Ustaad</div>
+                <div class="logo-sub">Work Wiki</div>
+            </div>
+        </div>
 
-    <h3 th:if="${answer}" th:text="${answer}"></h3>
-    <p th:if="${question}" th:text="'Question: ' + ${question}"></p>
-    <pre th:if="${message}" th:text="${message}"></pre>
+        <div class="sidebar-footer">
+            <div class="status-pill">
+                <span class="status-dot"></span>
+                Ollama connected
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main content -->
+    <main class="main">
+
+        <!-- Tab bar -->
+        <div class="tabs-bar">
+            <button class="tab-btn active" id="tab-upload" onclick="switchTab('upload')">
+                <span class="tab-icon">📥</span> Upload
+            </button>
+            <button class="tab-btn" id="tab-chat" onclick="switchTab('chat')">
+                <span class="tab-icon">✦</span> Ask AI
+            </button>
+        </div>
+
+        <!-- Upload tab -->
+        <div class="tab-panel upload-panel active" id="panel-upload">
+            <div class="panel-header">
+                <div class="panel-title">Ingest Documents</div>
+                <div class="panel-subtitle">Drop files or folders into your knowledge base — mix and match as many as you like</div>
+            </div>
+
+            <div class="card">
+                <form id="ingest-form" method="post" enctype="multipart/form-data" action="/ingest">
+                    <input type="file" id="hidden-file-input" name="files" multiple style="display:none">
+
+                    <div class="drop-zone" id="drop-zone">
+                        <div class="drop-zone-icon">🗂</div>
+                        <div class="drop-zone-text">Drop files or folders here</div>
+                        <div class="drop-zone-hint">Any file type — folders expanded recursively</div>
+                    </div>
+
+                    <div class="add-row">
+                        <label class="add-btn">
+                            <input type="file" id="pick-files" multiple>
+                            📄 Add Files
+                        </label>
+                        <label class="add-btn">
+                            <input type="file" id="pick-folder" webkitdirectory directory multiple>
+                            📁 Add Folder
+                        </label>
+                        <label class="add-btn">
+                            <input type="file" id="pick-folders-multi" webkitdirectory directory multiple>
+                            📂 Add Another Folder
+                        </label>
+                    </div>
+
+                    <div class="queue-header" id="queue-header" style="display:none">
+                        <div class="queue-label">
+                            Queued <span class="queue-count" id="queue-count">0</span>
+                        </div>
+                        <button type="button" class="queue-clear" id="queue-clear">Clear all</button>
+                    </div>
+                    <div class="queue-list" id="queue-list"></div>
+
+                    <div class="btn-row">
+                        <button type="submit" class="btn btn-primary" id="ingest-btn" disabled>
+                            ⚡ Ingest into Wiki
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Ingestion result -->
+            <div class="log-card" th:if="${message}">
+                <div class="log-header">
+                    <span>▸</span>
+                    <span class="log-title">Ingestion Log</span>
+                </div>
+                <div class="log-body" th:text="${message}"></div>
+            </div>
+        </div>
+
+        <!-- Chat tab -->
+        <div class="tab-panel chat-panel" id="panel-chat">
+            <div class="chat-messages" id="chat-messages">
+
+                <!-- Pre-loaded answer from server — rendered by JS with markdown support -->
+                <div id="preloaded-qa" th:if="${answer}"
+                     th:attr="data-question=${question},data-answer=${answer}"
+                     style="display:none"></div>
+
+                <!-- Empty state (shown when no messages) -->
+                <div class="chat-empty" id="chat-empty" th:unless="${answer}">
+                    <div class="chat-empty-icon">✦</div>
+                    <div class="chat-empty-title">Ask your knowledge base</div>
+                    <div class="chat-empty-sub">Query anything from your ingested documents using natural language.</div>
+                    <div class="chat-suggestions">
+                        <div class="suggestion-chip" onclick="fillPrompt('Summarize the key points from my documents')">Summarize key points</div>
+                        <div class="suggestion-chip" onclick="fillPrompt('What are the main topics covered?')">Main topics</div>
+                        <div class="suggestion-chip" onclick="fillPrompt('Find action items or TODOs')">Find action items</div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Input bar -->
+            <div class="chat-input-wrap">
+                <div class="chat-input-box">
+                    <textarea
+                        id="chat-input"
+                        placeholder="Ask anything about your knowledge base…"
+                        spellcheck="false"
+                        rows="1"
+                    ></textarea>
+                    <button class="chat-send-btn" id="chat-send" disabled title="Send (Enter)">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                            <path d="M8 13V3M8 3L4 7M8 3L12 7" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+                <div class="chat-input-hint">Enter to send · Shift+Enter for new line</div>
+            </div>
+        </div>
+
+    </main>
+</div>
+
+<!-- Hidden server-rendered answer carrier (for AJAX extraction) -->
+<div id="server-answer" th:if="${answer}"
+     th:attr="data-answer=${answer},data-question=${question}"
+     style="display:none"></div>
+
+<!-- Upload loading overlay -->
+<div class="upload-loading" id="upload-loading">
+    <div class="spinner"></div>
+    <div class="upload-loading-text">Ingesting documents…</div>
+    <div class="upload-loading-sub">This may take a moment depending on file size</div>
+</div>
+
+<script>
+(function () {
+
+    /* ────────── Tab switching ────────── */
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+        document.getElementById('tab-' + tab).classList.add('active');
+        document.getElementById('panel-' + tab).classList.add('active');
+        if (tab === 'chat') chatInput.focus();
+    };
+
+    // If server returned an answer, render it with markdown and switch to chat tab
+    const preloaded = document.getElementById('preloaded-qa');
+    const hasAnswer = preloaded !== null || document.getElementById('server-answer') !== null;
+    if (preloaded) {
+        appendMessage('user', preloaded.getAttribute('data-question') || '');
+        appendMessage('assistant', preloaded.getAttribute('data-answer') || '');
+    }
+    if (hasAnswer) switchTab('chat');
+
+    /* ────────── Upload / Ingest ────────── */
+    const queue      = [];
+    const dropZone   = document.getElementById('drop-zone');
+    const queueList  = document.getElementById('queue-list');
+    const queueCount = document.getElementById('queue-count');
+    const queueHdr   = document.getElementById('queue-header');
+    const ingestBtn  = document.getElementById('ingest-btn');
+    const hiddenIn   = document.getElementById('hidden-file-input');
+    const form       = document.getElementById('ingest-form');
+    const uploadOverlay = document.getElementById('upload-loading');
+
+    function ext(name) {
+        const i = name.lastIndexOf('.');
+        return i > -1 ? name.slice(i + 1).toUpperCase() : '?';
+    }
+
+    function sizeLabel(bytes) {
+        if (bytes < 1024) return bytes + ' B';
+        if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+        return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+    }
+
+    function isDuplicate(file) {
+        return queue.some(f => f.name === file.name && f.size === file.size);
+    }
+
+    function renderQueue() {
+        queueList.innerHTML = '';
+        if (queue.length === 0) {
+            queueHdr.style.display = 'none';
+            ingestBtn.disabled = true;
+            return;
+        }
+        queueHdr.style.display = 'flex';
+        queueCount.textContent = queue.length;
+        ingestBtn.disabled = false;
+
+        queue.forEach((file, idx) => {
+            const chip = document.createElement('div');
+            chip.className = 'chip';
+            chip.title = file.webkitRelativePath || file.name;
+            chip.innerHTML = `
+                <span class="chip-name">${file.webkitRelativePath || file.name}</span>
+                <span style="font-size:9px;color:var(--text-faint);flex-shrink:0">${sizeLabel(file.size)}</span>
+                <button class="chip-remove" type="button" data-idx="${idx}" title="Remove">✕</button>`;
+            queueList.appendChild(chip);
+        });
+
+        queueList.querySelectorAll('.chip-remove').forEach(btn => {
+            btn.addEventListener('click', () => {
+                queue.splice(Number(btn.dataset.idx), 1);
+                renderQueue();
+            });
+        });
+    }
+
+    function addFiles(files) {
+        let added = 0;
+        for (const f of files) {
+            if (!isDuplicate(f)) { queue.push(f); added++; }
+        }
+        if (added > 0) renderQueue();
+    }
+
+    function readEntry(entry) {
+        return new Promise(resolve => {
+            if (entry.isFile) {
+                entry.file(f => resolve([f]), () => resolve([]));
+            } else if (entry.isDirectory) {
+                const reader = entry.createReader();
+                const all = [];
+                function readBatch() {
+                    reader.readEntries(entries => {
+                        if (entries.length === 0) {
+                            Promise.all(all).then(nested => resolve(nested.flat())).catch(() => resolve([]));
+                        } else {
+                            all.push(...entries.map(readEntry));
+                            readBatch();
+                        }
+                    }, () => resolve([]));
+                }
+                readBatch();
+            } else {
+                resolve([]);
+            }
+        });
+    }
+
+    dropZone.addEventListener('dragover', e => {
+        e.preventDefault();
+        dropZone.classList.add('drag-over');
+    });
+    ['dragleave', 'dragend'].forEach(ev =>
+        dropZone.addEventListener(ev, () => dropZone.classList.remove('drag-over'))
+    );
+    dropZone.addEventListener('drop', async e => {
+        e.preventDefault();
+        dropZone.classList.remove('drag-over');
+        const items = [...e.dataTransfer.items];
+        const entryPromises = items
+            .filter(i => i.kind === 'file')
+            .map(i => {
+                const entry = i.webkitGetAsEntry ? i.webkitGetAsEntry() : null;
+                return entry ? readEntry(entry) : Promise.resolve(i.getAsFile() ? [i.getAsFile()] : []);
+            });
+        const nested = await Promise.all(entryPromises);
+        addFiles(nested.flat());
+    });
+
+    ['pick-files', 'pick-folder', 'pick-folders-multi'].forEach(id => {
+        document.getElementById(id).addEventListener('change', function () {
+            addFiles([...this.files]);
+            this.value = '';
+        });
+    });
+
+    document.getElementById('queue-clear').addEventListener('click', () => {
+        queue.length = 0;
+        renderQueue();
+    });
+
+    form.addEventListener('submit', e => {
+        if (queue.length === 0) { e.preventDefault(); return; }
+        const dt = new DataTransfer();
+        queue.forEach(f => dt.items.add(f));
+        hiddenIn.files = dt.files;
+        uploadOverlay.classList.add('active');
+    });
+
+    renderQueue();
+
+    /* ────────── Chat / Ask AI ────────── */
+    const chatMessages = document.getElementById('chat-messages');
+    const chatEmpty    = document.getElementById('chat-empty');
+    const chatInput    = document.getElementById('chat-input');
+    const chatSend     = document.getElementById('chat-send');
+
+    window.fillPrompt = function(text) {
+        chatInput.value = text;
+        chatInput.dispatchEvent(new Event('input'));
+        chatInput.focus();
+    };
+
+    // Auto-resize textarea
+    chatInput.addEventListener('input', () => {
+        chatSend.disabled = chatInput.value.trim() === '';
+        chatInput.style.height = '24px';
+        chatInput.style.height = Math.min(chatInput.scrollHeight, 200) + 'px';
+    });
+
+    // Send on Enter, newline on Shift+Enter
+    chatInput.addEventListener('keydown', e => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!chatSend.disabled) sendMessage();
+        }
+    });
+
+    chatSend.addEventListener('click', () => sendMessage());
+
+    function appendMessage(role, text) {
+        if (chatEmpty) chatEmpty.style.display = 'none';
+        const row = document.createElement('div');
+        row.className = 'msg-row ' + role;
+        if (role === 'user') {
+            row.innerHTML = `
+                <div class="msg-bubble">${escHtml(text)}</div>
+                <div class="msg-avatar">👤</div>`;
+        } else {
+            row.innerHTML = `
+                <div class="msg-avatar">⚡</div>
+                <div class="msg-bubble md">${marked.parse(text)}</div>`;
+        }
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+        return row;
+    }
+
+    function appendTypingIndicator() {
+        if (chatEmpty) chatEmpty.style.display = 'none';
+        const row = document.createElement('div');
+        row.className = 'msg-row assistant';
+        row.id = 'typing-row';
+        row.innerHTML = `
+            <div class="msg-avatar">⚡</div>
+            <div class="msg-bubble">
+                <div class="typing-indicator">
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                    <div class="typing-dot"></div>
+                </div>
+            </div>`;
+        chatMessages.appendChild(row);
+        chatMessages.scrollTop = chatMessages.scrollHeight;
+    }
+
+    function removeTypingIndicator() {
+        const el = document.getElementById('typing-row');
+        if (el) el.remove();
+    }
+
+    function escHtml(str) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+                  .replace(/"/g, '&quot;').replace(/\n/g, '<br>');
+    }
+
+    async function sendMessage() {
+        const text = chatInput.value.trim();
+        if (!text) return;
+
+        chatInput.value = '';
+        chatInput.style.height = '24px';
+        chatSend.disabled = true;
+
+        appendMessage('user', text);
+        appendTypingIndicator();
+
+        try {
+            const fd = new FormData();
+            fd.append('question', text);
+            const res = await fetch('/query', { method: 'POST', body: fd });
+            const html = await res.text();
+
+            // Extract answer from the hidden carrier element
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(html, 'text/html');
+            const carrier = doc.getElementById('server-answer');
+            const answer = carrier
+                ? carrier.getAttribute('data-answer') || 'No response received.'
+                : 'No response received.';
+
+            removeTypingIndicator();
+            appendMessage('assistant', answer);
+        } catch (err) {
+            removeTypingIndicator();
+            appendMessage('assistant', 'Something went wrong. Please try again.');
+        }
+    }
+
+    // Scroll chat to bottom on load if messages exist
+    chatMessages.scrollTop = chatMessages.scrollHeight;
+
+})();
+</script>
 </body>
 </html>

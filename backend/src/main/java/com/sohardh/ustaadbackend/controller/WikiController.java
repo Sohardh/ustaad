@@ -38,10 +38,11 @@ public class WikiController {
   }
 
   @PostMapping("/query")
-  public String query(@RequestParam("question") String question, RedirectAttributes redirectAttributes) {
+  public String query(@RequestParam("question") String question, RedirectAttributes redirectAttributes)
+      throws IOException {
     log.info("Received wiki query: {}", question);
     String answer = wikiService.query(question);
-    log.debug("Query answer: {}", answer);
+    log.info("Query answer: {}", answer);
     redirectAttributes.addFlashAttribute("answer", answer);
     redirectAttributes.addFlashAttribute("question", question);
     return "redirect:/";

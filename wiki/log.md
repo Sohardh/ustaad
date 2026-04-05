@@ -1,2 +1,1 @@
-# Log
-Record of activities and updates.
+## [2023-09-01] Ingested source: Mastering PostgreSQL Declarative Partitioning | Source: https://sohardh.com/postgres-declarative-partitioning

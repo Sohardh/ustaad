@@ -1186,18 +1186,33 @@
             const fd = new FormData();
             fd.append('question', text);
             const res = await fetch('/query', { method: 'POST', body: fd });
-            const html = await res.text();
-
-            // Extract answer from the hidden carrier element
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(html, 'text/html');
-            const carrier = doc.getElementById('server-answer');
-            const answer = carrier
-                ? carrier.getAttribute('data-answer') || 'No response received.'
-                : 'No response received.';
 
             removeTypingIndicator();
-            appendMessage('assistant', answer);
+            if (chatEmpty) chatEmpty.style.display = 'none';
+
+            // Create streaming assistant bubble
+            const row = document.createElement('div');
+            row.className = 'msg-row assistant';
+            row.innerHTML = `
+                <div class="msg-avatar">⚡</div>
+                <div class="msg-bubble md"></div>`;
+            chatMessages.appendChild(row);
+            const bubble = row.querySelector('.msg-bubble');
+
+            let fullText = '';
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                fullText += decoder.decode(value, { stream: true });
+                bubble.innerHTML = marked.parse(fullText);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+            // Flush any remaining bytes
+            fullText += decoder.decode();
+            bubble.innerHTML = marked.parse(fullText || 'No response received.');
+            chatMessages.scrollTop = chatMessages.scrollHeight;
         } catch (err) {
             removeTypingIndicator();
             appendMessage('assistant', 'Something went wrong. Please try again.');

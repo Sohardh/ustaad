@@ -15,6 +15,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 public class WikiEditorService {
@@ -36,12 +37,20 @@ public class WikiEditorService {
     String wikiDir = properties.getBasePath();
     String sourcesDir = properties.getSourcesPath();
 
-    // 1. Save raw immutable source
-    String timestamp = LocalDateTime.now()
-        .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
-    Path rawPath = Paths.get(sourcesDir, timestamp + "-" + filename);
+    // 1. Save raw immutable source — flat directory, timestamp suffix on name collision
+    String baseName = Paths.get(filename).getFileName().toString();
+    Path sourcesPath = Paths.get(sourcesDir);
+    Files.createDirectories(sourcesPath);
+    Path rawPath = sourcesPath.resolve(baseName);
+    if (Files.exists(rawPath)) {
+      String timestamp = LocalDateTime.now()
+          .format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss"));
+      int dot = baseName.lastIndexOf('.');
+      String stem = dot > 0 ? baseName.substring(0, dot) : baseName;
+      String ext  = dot > 0 ? baseName.substring(dot) : "";
+      rawPath = sourcesPath.resolve(stem + "_" + timestamp + ext);
+    }
     log.debug("Saving raw source to: {}", rawPath);
-    Files.createDirectories(rawPath.getParent());
     Files.write(rawPath, sourceText.getBytes());
 
     // 2. Load current wiki context (schema + index + log)
@@ -78,14 +87,16 @@ public class WikiEditorService {
         Be professional, concise, and engineering-focused.
         """.formatted(schema, index, logContent, filename, sourceText);
 
-    // 4. Call LLM
+    // 4. Call LLM (streaming, collected to a single string for JSON parsing)
     log.debug("Calling LLM for wiki edits...");
     String rawResponse = chatClient.prompt()
-        .system("You are a precise wiki editor. Output only valid JSON, no explanations.")
+        .system("You are a precise wiki editor. Output only valid JSON, no explanations, no markdown, no other syntax. just pure json.")
         .user(prompt)
-        .call()
-        .content();
-    log.trace("Raw LLM response: {}", rawResponse);
+        .stream()
+        .content()
+        .collect(Collectors.joining())
+        .block();
+    log.debug("Raw LLM response: {}", rawResponse);
 
     // 5. Parse JSON edits and apply them
     List<Map<String, String>> edits;

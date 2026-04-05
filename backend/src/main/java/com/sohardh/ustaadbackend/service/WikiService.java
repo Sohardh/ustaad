@@ -7,6 +7,7 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
+import reactor.core.publisher.Flux;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -47,23 +48,27 @@ public class WikiService {
     return results.toString();
   }
 
-  public String query(String question) throws IOException {
+  public Flux<String> queryStream(String question) {
     log.info("Querying wiki with question: {}", question);
-    String wikiContext = loadWikiContext();
+    String wikiContext;
+    try {
+      wikiContext = loadWikiContext();
+    } catch (IOException e) {
+      log.error("Failed to load wiki context", e);
+      return Flux.just("Error: could not load wiki knowledge base.");
+    }
 
     String prompt = """
         You have access to the following wiki knowledge base:
-        
+
         %s
-        
+
         Answer using ONLY the knowledge above.
         Question: %s
         If not enough info, say "Not in knowledge base."
         """.formatted(wikiContext, question);
 
-    String response = chatClient.prompt(prompt).call().content();
-    log.debug("Wiki response: {}", response);
-    return response;
+    return chatClient.prompt(prompt).stream().content();
   }
 
   private String loadWikiContext() throws IOException {

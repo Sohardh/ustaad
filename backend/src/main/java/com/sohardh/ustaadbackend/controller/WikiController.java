@@ -3,10 +3,12 @@ package com.sohardh.ustaadbackend.controller;
 import com.sohardh.ustaadbackend.service.WikiService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseBodyEmitter;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -38,13 +40,21 @@ public class WikiController {
   }
 
   @PostMapping("/query")
-  public String query(@RequestParam("question") String question, RedirectAttributes redirectAttributes)
-      throws IOException {
+  @ResponseBody
+  public ResponseBodyEmitter query(@RequestParam("question") String question) {
     log.info("Received wiki query: {}", question);
-    String answer = wikiService.query(question);
-    log.info("Query answer: {}", answer);
-    redirectAttributes.addFlashAttribute("answer", answer);
-    redirectAttributes.addFlashAttribute("question", question);
-    return "redirect:/";
+    ResponseBodyEmitter emitter = new ResponseBodyEmitter(180_000L);
+    wikiService.queryStream(question).subscribe(
+        chunk -> {
+          try {
+            emitter.send(chunk, MediaType.TEXT_PLAIN);
+          } catch (IOException e) {
+            emitter.completeWithError(e);
+          }
+        },
+        emitter::completeWithError,
+        emitter::complete
+    );
+    return emitter;
   }
 }

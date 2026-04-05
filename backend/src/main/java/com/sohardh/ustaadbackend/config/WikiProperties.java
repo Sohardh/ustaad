@@ -7,5 +7,6 @@ public record WikiProperties(
     String basePath,
     String sourcesPath,
     String watchersPath,
-    String watchersStatePath
+    String watchersStatePath,
+    String llmProvider
 ) {}

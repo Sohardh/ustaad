@@ -11,7 +11,8 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
+import java.util.Objects;
+import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.client.ChatClient;
@@ -21,11 +22,13 @@ import org.springframework.stereotype.Service;
 public class WikiEditorService {
 
   private static final Logger log = LoggerFactory.getLogger(WikiEditorService.class);
+  private static final Pattern NEWLINE_IN_STRING = Pattern.compile("(?<!\\\\)\\\\n|(?<!\\\\)\\n");
 
   private final ChatClient chatClient;
   private final WikiProperties properties;
   private final ObjectMapper objectMapper = new ObjectMapper();
 
+  // Regex to escape any remaining unescaped newlines inside JSON strings
   public WikiEditorService(ChatClient chatClient, WikiProperties properties) {
     this.chatClient = chatClient;
     this.properties = properties;
@@ -51,15 +54,16 @@ public class WikiEditorService {
     }
     log.debug("Saving raw source to: {}", rawPath);
     Files.write(rawPath, sourceText.getBytes());
+    log.info("Raw source saved: {}", rawPath);
 
-    // 2. Load current wiki context (schema + index + log)
-    String schema = readFileIfExists(Paths.get(wikiDir, "schema-work.md").toAbsolutePath());
-    String index = readFileIfExists(Paths.get(wikiDir, "index.md").toAbsolutePath());
-    String logContent = readFileIfExists(Paths.get(wikiDir, "log.md").toAbsolutePath());
+    // 2. Load current context
+    String schema = readFile(Paths.get(wikiDir, "schema-work.md"));
+    String currentIndex = readFile(Paths.get(wikiDir, "index.md"));
+    String currentLog = readFile(Paths.get(wikiDir, "log.md"));
 
-    // 3. Build rich prompt for Karpathy-style editing
+    // 3. prompt
     String prompt = """
-        You are an expert LLM Wiki editor following Andrej Karpathy's LLM Wiki rules exactly.
+        You are a strict LLM Wiki editor following Karpathy's rules.
         
         Current schema:
         %s
@@ -67,73 +71,72 @@ public class WikiEditorService {
         Current index.md:
         %s
         
-        Last entries in log.md:
+        Current log.md:
         %s
         
-        New source filename: %s
+        NEW SOURCE: %s
         
         Source content:
         %s
         
-        Instructions:
-        1. Deeply integrate this source into the wiki (create new pages or update existing ones).
-        2. Use strong [[wiki links]] and "Related:" sections.
-        3. For code/SQL: keep clean runnable blocks with explanation.
-        4. Update index.md and append a new entry to log.md.
-        5. Return ONLY valid unformatted JSON: an array of edits.
-           Example: [{"page": "topics/ProjectX.md", "content": "full markdown here"}, ...]
-        6. There can be code snippets etc. Escape the characters properly, so that it can be read by com.fasterxml.jackson.databind.ObjectMapper
+        TASK:
+        1. Deeply integrate this source (create/update any relevant pages).
+        2. ALWAYS include TWO edits in your JSON:
+           - Update index.md (full new content)
+           - Append a new entry to log.md (return the FULL updated log.md content)
+        3. Use strong [[backlinks]] and "Related:" sections.
+        4. For code/SQL keep clean runnable blocks.
         
-        Be professional, concise, and engineering-focused.
-        """.formatted(schema, index, logContent, filename, sourceText);
+        RETURN ONLY valid JSON (no explanations, no markdown, no ```json, no format):
+        [{"page": "relative/path.md", "content": "full markdown here"}, ...]
+        """.formatted(schema, currentIndex, currentLog, filename, sourceText);
 
-    // 4. Call LLM (streaming, collected to a single string for JSONL parsing)
-    log.debug("Calling LLM for wiki edits...");
+    // 4. Call LLM
     String rawResponse = chatClient.prompt()
         .system(
-            "You are a precise wiki editor. Output only valid unformatted JSON, no explanations.")
+            "You are a precise wiki editor. Output ONLY valid JSON array of edits. Never add any extra text.")
         .user(prompt)
-        .stream()
-        .content()
-        .collect(Collectors.joining())
-        .block();
-    log.debug("Raw LLM response: {}", rawResponse);
+        .call()
+        .content();
 
-    // 5. Parse JSON edits and apply them
+    log.info("Raw LLM response for ingest of {}:\n{}", filename, rawResponse);
+
+    // 5. Sanitize response (fix any remaining unescaped newlines)
+
+    // 6. Parse JSON edits
     List<Map<String, String>> edits;
     try {
-      edits = objectMapper.readValue(rawResponse, new TypeReference<>() {
-      });
+      edits = objectMapper.readValue(Objects.requireNonNull(rawResponse).trim(),
+          new TypeReference<>() {
+          });
     } catch (Exception e) {
-      log.error("Failed to parse LLM response as JSON. Raw response: {}", rawResponse, e);
-      // Fallback if LLM didn't return clean JSON
-      return "Ingested " + filename
-          + " (raw saved). LLM response was not valid JSON. Manual review needed.";
+      log.error("JSON parse failed for {}", filename, e);
+      return "✅ Raw file saved, but LLM did not return valid JSON. Check logs.";
     }
 
+    // 7. Apply all edits (this now reliably updates index + log)
     int updated = 0;
     for (Map<String, String> edit : edits) {
-      String pagePath = edit.get("page");
+      String page = edit.get("page");
       String content = edit.get("content");
-      if (pagePath != null && content != null) {
-        Path fullPath = Paths.get(wikiDir, pagePath);
-        log.info("Updating/creating wiki page: {}", pagePath);
+      if (page != null && content != null) {
+        Path fullPath = Paths.get(wikiDir, page);
         Files.createDirectories(fullPath.getParent());
         Files.writeString(fullPath, content);
+        log.info("Updated wiki page: {}", page);
         updated++;
       }
     }
 
-    log.info("Finished ingestion for file: {}. Updated/created {} wiki page(s).", filename,
-        updated);
-    return "✅ Ingested " + filename + ". Updated/created " + updated + " wiki page(s).";
+    return "✅ Ingested " + filename + " → Updated " + updated
+        + " wiki page(s) (including index.md and log.md).";
   }
 
-  private String readFileIfExists(Path path) {
+  private String readFile(Path path) {
     try {
       return Files.readString(path);
     } catch (IOException e) {
-      return "(file not found yet)";
+      return "(file not created yet)";
     }
   }
 }

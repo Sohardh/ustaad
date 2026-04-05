@@ -1,13 +1,13 @@
-package com.sohardh.ustadbackend;
+package com.sohardh.ustaadbackend;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class BackendApplication {
+public class UstaadBackendApplication {
 
   public static void main(String[] args) {
-    SpringApplication.run(BackendApplication.class, args);
+    SpringApplication.run(UstaadBackendApplication.class, args);
   }
 
 }

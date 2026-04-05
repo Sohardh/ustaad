@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Work LLM Wiki</title>
+    <style>body{font-family:Arial;margin:40px}textarea{width:100%;height:200px}</style>
+</head>
+<body>
+    <h1>Work LLM Wiki Agent</h1>
+    <p><strong>Status:</strong> Connected to Olldama</p>
+    
+    <h2>1. Ingest New Files / Folders</h2>
+    <form method="post" enctype="multipart/form-data" action="/ingest">
+        <label for="files">Select Files:</label>
+        <input type="file" name="files" id="files" multiple><br><br>
+        <label for="folder">Select Folder:</label>
+        <input type="file" name="files" id="folder" webkitdirectory directory multiple><br><br>
+        <button type="submit">Ingest into Wiki</button>
+    </form>
+
+    <h2>2. Ask the Wiki</h2>
+    <form method="post" action="/query">
+        <textarea name="question" placeholder="Ask anything about your work knowledge..."></textarea><br>
+        <button type="submit">Ask</button>
+    </form>
+
+    <h3 th:if="${answer}" th:text="${answer}"></h3>
+    <p th:if="${question}" th:text="'Question: ' + ${question}"></p>
+    <pre th:if="${message}" th:text="${message}"></pre>
+</body>
+</html>

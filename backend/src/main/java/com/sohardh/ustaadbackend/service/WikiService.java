@@ -25,8 +25,7 @@ public class WikiService {
   private final ChatClient chatClient;
   private final WikiProperties properties;
 
-  public WikiService(WikiEditorService editorService, ChatClient chatClient,
-      @Qualifier("wikiProperties") WikiProperties properties) {
+  public WikiService(WikiEditorService editorService, ChatClient chatClient, WikiProperties properties) {
     this.editorService = editorService;
     this.chatClient = chatClient;
     this.properties = properties;
@@ -72,7 +71,7 @@ public class WikiService {
   }
 
   private String loadWikiContext() throws IOException {
-    Path wikiDir = Paths.get(properties.getBasePath());
+    Path wikiDir = Paths.get(properties.basePath());
     if (!Files.isDirectory(wikiDir)) {
       return "(wiki directory not found)";
     }

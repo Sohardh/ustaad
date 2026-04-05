@@ -784,6 +784,93 @@
         ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
         ::-webkit-scrollbar-thumb:hover { background: #444; }
 
+        /* ── Watcher cards ── */
+        .watcher-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-lg);
+            padding: 18px 22px;
+            margin-bottom: 12px;
+            animation: fadeUp 0.2s ease;
+        }
+
+        .watcher-card-top {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .watcher-path {
+            flex: 1;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: var(--text-primary);
+            word-break: break-all;
+        }
+
+        .watcher-badge {
+            padding: 3px 9px;
+            border-radius: 99px;
+            font-size: 11px;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .watcher-badge.active {
+            background: var(--green-soft);
+            border: 1px solid rgba(74,222,128,0.2);
+            color: var(--green);
+        }
+
+        .watcher-badge.paused {
+            background: rgba(255,200,0,0.08);
+            border: 1px solid rgba(255,200,0,0.2);
+            color: #fbbf24;
+        }
+
+        .watcher-meta {
+            font-size: 11px;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        .watcher-result {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 11px;
+            color: #9acd9a;
+            background: var(--bg-elevated);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            margin-top: 10px;
+            white-space: pre-wrap;
+            max-height: 100px;
+            overflow-y: auto;
+        }
+
+        .watcher-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .watcher-btn {
+            padding: 5px 12px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-elevated);
+            color: var(--text-muted);
+            transition: border-color .15s, color .15s, background .15s;
+            font-family: 'Inter', sans-serif;
+        }
+
+        .watcher-btn:hover { border-color: var(--accent); color: #a78bfa; background: var(--accent-soft); }
+        .watcher-btn.danger:hover { border-color: #f87171; color: #f87171; background: rgba(248,113,113,0.08); }
+        .watcher-btn.run:hover { border-color: var(--green); color: var(--green); background: var(--green-soft); }
+
         /* ── Responsive ── */
         @media (max-width: 768px) {
             .shell { grid-template-columns: 1fr; }
@@ -827,6 +914,9 @@
             <button class="tab-btn" id="tab-chat" onclick="switchTab('chat')">
                 <span class="tab-icon">✦</span> Ask AI
             </button>
+            <button class="tab-btn" id="tab-watchers" onclick="switchTab('watchers')">
+                <span class="tab-icon">👁</span> Watchers
+            </button>
         </div>
 
         <!-- Upload tab -->
@@ -854,10 +944,6 @@
                         <label class="add-btn">
                             <input type="file" id="pick-folder" webkitdirectory directory multiple>
                             📁 Add Folder
-                        </label>
-                        <label class="add-btn">
-                            <input type="file" id="pick-folders-multi" webkitdirectory directory multiple>
-                            📂 Add Another Folder
                         </label>
                     </div>
 
@@ -929,6 +1015,57 @@
             </div>
         </div>
 
+        <!-- Watchers tab -->
+        <div class="tab-panel upload-panel" id="panel-watchers">
+            <div class="panel-header">
+                <div class="panel-title">Folder Watchers</div>
+                <div class="panel-subtitle">Monitor folders and automatically ingest new or modified files on a schedule</div>
+            </div>
+
+            <!-- Add watcher form -->
+            <div class="card" style="margin-bottom:20px">
+                <div class="card-header">
+                    <div class="card-icon">📁</div>
+                    <div>
+                        <div class="card-title">Add Folder Watcher</div>
+                        <div class="card-desc">Provide an absolute path to the folder you want to monitor</div>
+                    </div>
+                </div>
+                <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+                    <div style="flex:1;min-width:260px">
+                        <label style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px">Folder Path</label>
+                        <input id="watcher-path" type="text" placeholder="/absolute/path/to/folder"
+                               style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-primary);font-family:'Inter',sans-serif;font-size:13px;outline:none;transition:border-color .2s"
+                               onfocus="this.style.borderColor='var(--border-focus)'" onblur="this.style.borderColor='var(--border)'">
+                    </div>
+                    <div style="min-width:140px">
+                        <label style="font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:var(--text-muted);display:block;margin-bottom:6px">Interval</label>
+                        <select id="watcher-interval"
+                                style="width:100%;background:var(--bg-elevated);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 12px;color:var(--text-primary);font-family:'Inter',sans-serif;font-size:13px;outline:none;cursor:pointer">
+                            <option value="5">Every 5 min</option>
+                            <option value="15">Every 15 min</option>
+                            <option value="30">Every 30 min</option>
+                            <option value="60" selected>Every 60 min</option>
+                            <option value="120">Every 2 hr</option>
+                            <option value="360">Every 6 hr</option>
+                            <option value="1440">Every 24 hr</option>
+                        </select>
+                    </div>
+                    <button class="btn btn-primary" onclick="addWatcher()" style="height:36px;white-space:nowrap">
+                        + Add Watcher
+                    </button>
+                </div>
+                <div id="watcher-add-msg" style="margin-top:10px;font-size:12px;color:var(--green);display:none"></div>
+            </div>
+
+            <!-- Watchers list -->
+            <div id="watchers-list">
+                <div style="text-align:center;padding:40px;color:var(--text-faint);font-size:13px" id="watchers-empty">
+                    No folder watchers configured yet.
+                </div>
+            </div>
+        </div>
+
     </main>
 </div>
 
@@ -955,15 +1092,6 @@
         document.getElementById('panel-' + tab).classList.add('active');
         if (tab === 'chat') chatInput.focus();
     };
-
-    // If server returned an answer, render it with markdown and switch to chat tab
-    const preloaded = document.getElementById('preloaded-qa');
-    const hasAnswer = preloaded !== null || document.getElementById('server-answer') !== null;
-    if (preloaded) {
-        appendMessage('user', preloaded.getAttribute('data-question') || '');
-        appendMessage('assistant', preloaded.getAttribute('data-answer') || '');
-    }
-    if (hasAnswer) switchTab('chat');
 
     /* ────────── Upload / Ingest ────────── */
     const queue      = [];
@@ -1075,7 +1203,8 @@
     });
 
     ['pick-files', 'pick-folder', 'pick-folders-multi'].forEach(id => {
-        document.getElementById(id).addEventListener('change', function () {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('change', function () {
             addFiles([...this.files]);
             this.value = '';
         });
@@ -1101,6 +1230,15 @@
     const chatEmpty    = document.getElementById('chat-empty');
     const chatInput    = document.getElementById('chat-input');
     const chatSend     = document.getElementById('chat-send');
+
+    // If server returned an answer, render it with markdown and switch to chat tab
+    const preloaded = document.getElementById('preloaded-qa');
+    const hasAnswer = preloaded !== null || document.getElementById('server-answer') !== null;
+    if (preloaded) {
+        appendMessage('user', preloaded.getAttribute('data-question') || '');
+        appendMessage('assistant', preloaded.getAttribute('data-answer') || '');
+    }
+    if (hasAnswer) switchTab('chat');
 
     window.fillPrompt = function(text) {
         chatInput.value = text;
@@ -1221,6 +1359,119 @@
 
     // Scroll chat to bottom on load if messages exist
     chatMessages.scrollTop = chatMessages.scrollHeight;
+
+    /* ────────── Folder Watchers ────────── */
+
+    const watchersList = document.getElementById('watchers-list');
+    const watchersEmpty = document.getElementById('watchers-empty');
+
+    function fmtTime(ms) {
+        if (!ms) return 'Never';
+        const d = new Date(ms);
+        return d.toLocaleDateString() + ' ' + d.toLocaleTimeString();
+    }
+
+    function renderWatchers(list) {
+        // remove existing watcher cards (keep the empty message node)
+        watchersList.querySelectorAll('.watcher-card').forEach(el => el.remove());
+        if (list.length === 0) {
+            watchersEmpty.style.display = 'block';
+            return;
+        }
+        watchersEmpty.style.display = 'none';
+        list.forEach(w => {
+            const card = document.createElement('div');
+            card.className = 'watcher-card';
+            card.id = 'watcher-' + w.id;
+            card.innerHTML = `
+                <div class="watcher-card-top">
+                    <div class="watcher-path">📁 ${escHtml(w.path)}</div>
+                    <span class="watcher-badge ${w.enabled ? 'active' : 'paused'}">${w.enabled ? '● Active' : '⏸ Paused'}</span>
+                </div>
+                <div class="watcher-meta">Every ${w.intervalMinutes} min · Last scanned: ${fmtTime(w.lastScannedMillis)}</div>
+                ${w.lastResult ? `<div class="watcher-result">${escHtml(w.lastResult)}</div>` : ''}
+                <div class="watcher-actions">
+                    <button class="watcher-btn run" onclick="runWatcher('${w.id}', this)">▶ Run Now</button>
+                    <button class="watcher-btn" onclick="toggleWatcher('${w.id}', this)">${w.enabled ? '⏸ Pause' : '▶ Resume'}</button>
+                    <button class="watcher-btn danger" onclick="deleteWatcher('${w.id}')">🗑 Remove</button>
+                </div>`;
+            watchersList.appendChild(card);
+        });
+    }
+
+    async function loadWatchers() {
+        try {
+            const res = await fetch('/watchers');
+            const list = await res.json();
+            renderWatchers(list);
+        } catch (e) {
+            console.error('Failed to load watchers', e);
+        }
+    }
+
+    window.addWatcher = async function() {
+        const path = document.getElementById('watcher-path').value.trim();
+        const interval = parseInt(document.getElementById('watcher-interval').value);
+        const msg = document.getElementById('watcher-add-msg');
+        if (!path) {
+            msg.textContent = 'Please enter a folder path.';
+            msg.style.color = '#f87171';
+            msg.style.display = 'block';
+            return;
+        }
+        try {
+            const res = await fetch('/watchers', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path, intervalMinutes: interval })
+            });
+            if (res.ok) {
+                document.getElementById('watcher-path').value = '';
+                msg.textContent = 'Watcher added!';
+                msg.style.color = 'var(--green)';
+                msg.style.display = 'block';
+                setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                await loadWatchers();
+            } else {
+                msg.textContent = 'Failed to add watcher.';
+                msg.style.color = '#f87171';
+                msg.style.display = 'block';
+            }
+        } catch (e) {
+            msg.textContent = 'Error: ' + e.message;
+            msg.style.color = '#f87171';
+            msg.style.display = 'block';
+        }
+    };
+
+    window.toggleWatcher = async function(id, btn) {
+        await fetch('/watchers/' + id + '/toggle', { method: 'PUT' });
+        await loadWatchers();
+    };
+
+    window.deleteWatcher = async function(id) {
+        if (!confirm('Remove this watcher?')) return;
+        await fetch('/watchers/' + id, { method: 'DELETE' });
+        await loadWatchers();
+    };
+
+    window.runWatcher = async function(id, btn) {
+        btn.disabled = true;
+        btn.textContent = '…Running';
+        try {
+            const res = await fetch('/watchers/' + id + '/run', { method: 'POST' });
+            await loadWatchers();
+        } finally {
+            btn.disabled = false;
+        }
+    };
+
+    // Load watchers when switching to watchers tab
+    const _origSwitchTab = window.switchTab;
+    window.switchTab = function(tab) {
+        _origSwitchTab(tab);
+        if (tab === 'watchers') loadWatchers();
+    };
 
 })();
 </script>

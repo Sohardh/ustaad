@@ -23,11 +23,11 @@ When ingesting a new source (document, chat transcript, code snippet, log file):
 1. **Store:** Save the raw copy to `../sources/` with the original filename + date.
 2. **Retrieve:** Search the existing wiki to find the relevant existing pages.
 3. **Integrate & Update:**
-    - Create new pages or update existing ones to synthesize the new information.
-    - Extract entities, code patterns, and infrastructure configs into their respective folders.
-    - Add strong `[[backlinks]]` and update the "Related:" sections on affected pages.
-    - Update `index.md` to reflect new pages.
-    - Append a summary of the action to `log.md`.
+   - Create new pages or update existing ones to synthesize the new information.
+   - Extract entities, code patterns, and infrastructure configs into their respective folders.
+   - Add strong `[[backlinks]]` and update the "Related:" sections on affected pages.
+   - Update `index.md` to reflect new pages.
+   - Append a summary of the action to `log.md`.
 4. **Code Execution Context:** For any code/SQL/Docker config, always keep a clean, runnable block + explanation of *when* and *why* to use it.
 
 ## Query Workflow

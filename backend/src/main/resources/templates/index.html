@@ -121,6 +121,18 @@
             flex-shrink: 0;
         }
 
+        .status-pill--offline {
+            background: rgba(248,113,113,0.12);
+            border-color: rgba(248,113,113,0.2);
+            color: #f87171;
+        }
+
+        .status-dot--offline {
+            background: #f87171;
+            box-shadow: 0 0 6px #f87171;
+            animation: none;
+        }
+
         @keyframes pulse {
             0%, 100% { opacity: 1; }
             50% { opacity: 0.4; }
@@ -896,9 +908,9 @@
         </div>
 
         <div class="sidebar-footer">
-            <div class="status-pill">
-                <span class="status-dot"></span>
-                Ollama connected
+            <div class="status-pill" th:classappend="${llmStatus == 'online' ? '' : 'status-pill--offline'}">
+                <span class="status-dot" th:classappend="${llmStatus == 'online' ? '' : 'status-dot--offline'}"></span>
+                <span th:text="${llmProvider + ' ' + llmStatus}">Ollama connected</span>
             </div>
         </div>
     </nav>

@@ -134,6 +134,20 @@ The UI is available at `http://localhost:8080`.
 
 ---
 
+## UI
+
+![Ustaad UI](media/screenshot.png)
+
+Ustaad ships with a built-in web UI at `http://localhost:8080`. From the UI you can:
+
+- **Upload sources** — Drag-and-drop or select files to ingest into your wiki.
+- **Ask questions** — Query your wiki in natural language and get streamed answers.
+- **Manage watchers** — Add, enable/disable, and trigger folder watchers that auto-ingest new or modified files from local directories.
+
+No separate frontend setup is required — the UI is served directly by the backend.
+
+---
+
 ## API
 
 | Method | Path | Description |
